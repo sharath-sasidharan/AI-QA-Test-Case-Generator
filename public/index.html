@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AI QA Test Case Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>AI QA Test Case Generator</h1>
+      <p class="subtitle">
+        Generate structured QA test cases and automation scripts instantly.
+      </p>
+
+      <textarea
+        id="featureInput"
+        placeholder="Enter feature description..."
+      ></textarea>
+
+      <div class="controls">
+        <label>
+          <input type="checkbox" id="negativeToggle" />
+          Include Negative Test Cases
+        </label>
+      </div>
+
+      <div class="buttons">
+        <button id="generateBtn">Generate Test Cases</button>
+        <button id="regenerateBtn" style="display: none">Regenerate</button>
+        <button id="downloadCSVBtn" style="display: none">Download CSV</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+
+      <h2>Test Cases</h2>
+      <div id="testCases">
+        <p class="empty-state">No test cases generated yet.</p>
+      </div>
+
+      <h2>Playwright Script</h2>
+      <button id="copyScriptBtn">Copy Script</button>
+      <pre id="playwrightScript"></pre>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
