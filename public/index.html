@@ -30,10 +30,33 @@
       </div>
 
       <div class="buttons">
-        <button id="generateBtn">Generate Test Cases</button>
+        <button id="generateBtn">
+          <span class="btn-text">Generate Test Cases</span>
+          <span class="spinner"></span>
+        </button>
+
         <button id="regenerateBtn" style="display: none">Regenerate</button>
         <button id="downloadCSVBtn" style="display: none">Download CSV</button>
         <button id="clearBtn">Clear</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <h3 id="totalCount">0</h3>
+          <p>Total Cases</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="highCount">0</h3>
+          <p>High Priority</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="mediumCount">0</h3>
+          <p>Medium Priority</p>
+        </div>
+        <div class="stat-card">
+          <h3 id="lowCount">0</h3>
+          <p>Low Priority</p>
+        </div>
       </div>
 
       <h2>Test Cases</h2>

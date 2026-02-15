@@ -1,4 +1,7 @@
 const generateBtn = document.getElementById("generateBtn");
+const generateBtnText = generateBtn.querySelector(".btn-text");
+const spinner = generateBtn.querySelector(".spinner");
+
 const regenerateBtn = document.getElementById("regenerateBtn");
 const downloadCSVBtn = document.getElementById("downloadCSVBtn");
 const textarea = document.getElementById("featureInput");
@@ -9,56 +12,137 @@ const clearBtn = document.getElementById("clearBtn");
 const copyScriptBtn = document.getElementById("copyScriptBtn");
 
 let latestTestCases = [];
+let isLoading = false;
+
+/* ===========================
+   UI STATE CONTROLLER
+=========================== */
+
+function updateUIState() {
+  generateBtn.disabled = isLoading || !textarea.value.trim();
+
+  if (isLoading) {
+    spinner.style.display = "inline-block";
+    generateBtnText.textContent = "Generating...";
+  } else {
+    spinner.style.display = "none";
+    generateBtnText.textContent = "Generate Test Cases";
+  }
+
+  // Show clear only if results exist
+  const hasResults =
+    latestTestCases.length > 0 || playwrightScript.textContent.trim() !== "";
+
+  clearBtn.style.display = hasResults ? "inline-block" : "none";
+}
+
+/* ===========================
+   Event Listeners
+=========================== */
 
 generateBtn.addEventListener("click", generate);
 regenerateBtn.addEventListener("click", generate);
 downloadCSVBtn.addEventListener("click", () => downloadCSV(latestTestCases));
 
+textarea.addEventListener("input", updateUIState);
+
 copyScriptBtn.addEventListener("click", () => {
-  const script = document.getElementById("playwrightScript").textContent;
-  if (!script) return alert("No script to copy!");
+  const script = playwrightScript.textContent;
+
+  if (!script) {
+    alert("No script to copy!");
+    return;
+  }
+
   navigator.clipboard.writeText(script);
-  alert("Script copied!");
+  copyScriptBtn.innerText = "Copied ✓";
+
+  setTimeout(() => {
+    copyScriptBtn.innerText = "Copy Script";
+  }, 1500);
 });
+
+/* ===========================
+   Generate AI Test Cases
+=========================== */
 
 async function generate() {
   const feature = textarea.value.trim();
-  if (!feature) return alert("Enter feature description.");
+  if (!feature) {
+    alert("Enter feature description.");
+    return;
+  }
 
-  generateBtn.disabled = true;
-  generateBtn.innerText = "Generating AI Cases...";
+  isLoading = true;
+  updateUIState();
 
-  const response = await fetch("/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      feature,
-      includeNegative: negativeToggle.checked,
-    }),
-  });
+  try {
+    const response = await fetch("/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        feature,
+        includeNegative: negativeToggle.checked,
+      }),
+    });
 
-  const data = await response.json();
+    if (!response.ok) {
+      throw new Error("Server error");
+    }
 
-  latestTestCases = data.testCases;
+    const data = await response.json();
 
-  renderTestCases(data.testCases);
-  renderPlaywright(data.playwrightScript);
+    latestTestCases = data.testCases || [];
 
-  generateBtn.disabled = false;
-  generateBtn.innerText = "Generate Test Cases";
+    renderTestCases(latestTestCases);
+    renderPlaywright(data.playwrightScript || "");
+    updateStats(latestTestCases);
 
-  regenerateBtn.style.display = "inline-block";
-  downloadCSVBtn.style.display = "inline-block";
+    regenerateBtn.style.display = "inline-block";
+    downloadCSVBtn.style.display = "inline-block";
+
+    testCasesContainer.scrollIntoView({ behavior: "smooth" });
+  } catch (error) {
+    console.log(error);
+    alert("Something went wrong. Please try again.");
+  } finally {
+    isLoading = false;
+    updateUIState();
+  }
 }
+
+/* ===========================
+   UI Helpers
+=========================== */
 
 function showEmptyState() {
   testCasesContainer.innerHTML =
     '<p class="empty-state">No test cases generated yet.</p>';
 }
 
+function updateStats(testCases) {
+  document.getElementById("totalCount").textContent = testCases.length;
+
+  const high = testCases.filter((tc) => tc.priority === "High").length;
+  const medium = testCases.filter((tc) => tc.priority === "Medium").length;
+  const low = testCases.filter((tc) => tc.priority === "Low").length;
+
+  document.getElementById("highCount").textContent = high;
+  document.getElementById("mediumCount").textContent = medium;
+  document.getElementById("lowCount").textContent = low;
+}
+
+/* ===========================
+   Render Functions
+=========================== */
+
 function renderTestCases(testCases) {
-  const container = document.getElementById("testCases");
-  container.innerHTML = "";
+  testCasesContainer.innerHTML = "";
+
+  if (!testCases.length) {
+    showEmptyState();
+    return;
+  }
 
   testCases.forEach((tc) => {
     const card = document.createElement("div");
@@ -74,15 +158,24 @@ function renderTestCases(testCases) {
       <p><strong>Expected:</strong> ${tc.expected}</p>
     `;
 
-    container.appendChild(card);
+    testCasesContainer.appendChild(card);
   });
 }
 
 function renderPlaywright(script) {
-  document.getElementById("playwrightScript").textContent = script;
+  playwrightScript.textContent = script;
 }
 
+/* ===========================
+   CSV Export
+=========================== */
+
 function downloadCSV(testCases) {
+  if (!testCases.length) {
+    alert("No test cases to download.");
+    return;
+  }
+
   let csv = "Title,Priority,Preconditions,Steps,Expected\n";
 
   testCases.forEach((tc) => {
@@ -98,18 +191,32 @@ function downloadCSV(testCases) {
   link.click();
 }
 
+/* ===========================
+   Clear Button
+=========================== */
+
 clearBtn.addEventListener("click", () => {
-  document.getElementById("featureInput").value = "";
-  document.getElementById("negativeToggle").checked = false;
+  textarea.value = "";
+  negativeToggle.checked = false;
 
-  showEmptyState();
-
+  latestTestCases = [];
   playwrightScript.textContent = "";
 
-  document.getElementById("regenerateBtn").style.display = "none";
-  document.getElementById("downloadCSVBtn").style.display = "none";
+  showEmptyState();
+  updateStats([]);
+
+  regenerateBtn.style.display = "none";
+  downloadCSVBtn.style.display = "none";
+
+  updateUIState();
 });
+
+/* ===========================
+   Initial Load
+=========================== */
 
 window.addEventListener("DOMContentLoaded", () => {
   showEmptyState();
+  updateStats([]);
+  updateUIState();
 });
